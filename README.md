@@ -1,136 +1,135 @@
-# Rust 智能网关 (ws_gateway)
+# Rust Smart Gateway (ws_gateway)
 
-单文件、零外部业务依赖、单机高性能二进制数据总线。用于体感设备、Web 前端、AI 预测节点之间的实时二进制消息路由。
+A single-binary, zero-dependency, high-performance binary data bus for real-time message routing between motion sensors, web frontends, and AI prediction nodes.
 
-## 架构
+## Architecture
 
 ```
                     ┌────────────────────────────────────────┐
-                    │              Rust 网关 (tokio)          │
-   [体感设备/UDP] ─►│  UDP 接收器 (:9999)                     │
+                    │           Rust Gateway (tokio)          │
+   [Sensor / UDP] ─►│  UDP Receiver (:9999)                  │
                     │        │                                │
                     │        ▼                                │
-                    │  路由核心 (DashMap 分段锁)               │
+                    │  Routing Core (DashMap, sharded locks)  │
                     │        ▲                                │
                     │        │                                │
-   [前端/AI/WS]  ◄─►│  WS 读写分离 (:8080) + 心跳检测          │
-                    │  静态文件服务 (:8080)                     │
-                    │  Metrics/日志 (:9090/metrics)            │
+   [Frontend/AI/WS]◄►│  WS read/write (:8080) + heartbeat     │
+                    │  Static file server (:8080)             │
+                    │  Metrics / Logging (:9090/metrics)      │
                     └────────────────────────────────────────┘
 ```
 
-- **万物皆用户**：体感设备、网页前端、AI 节点都是平等的 Client
-- **全链路二进制**：24 字节定长头部 + Payload，零拷贝路由
-- **业务弱侵入**：网关只解析头部字段，不解析 Payload
+- **Everyone is a client**: motion sensors, web frontends, and AI nodes are all equal peers.
+- **Binary end-to-end**: 24-byte fixed-length header + payload, zero-copy routing.
+- **Minimal business intrusion**: the gateway only parses header fields for routing, never inspects payload.
 
-## 快速开始
+## Quick Start
 
-### 下载二进制
+### Download
 
-从 [Releases](https://github.com/ouut/ws_gateway/releases) 下载对应平台的二进制：
+Download the binary for your platform from [Releases](https://github.com/ouut/ws_gateway/releases):
 
-| 平台 | 文件 | 说明 |
+| Platform | File | Notes |
 |---|---|---|
 | Linux x86_64 | `gateway-linux-x86_64` | |
-| Linux ARM64 | `gateway-linux-aarch64` | 树莓派、ARM 服务器 |
+| Linux ARM64 | `gateway-linux-aarch64` | Raspberry Pi, ARM servers |
 | Windows x86_64 | `gateway-windows-x86_64.exe` | |
-| macOS (Intel/M 芯片) | 见下方编译 | Release 无预编译二进制，需本地编译 |
+| macOS (Intel / Apple Silicon) | see build section below | No prebuilt binary; build locally |
 
-### 运行
+### Run
 
 ```bash
 # Linux
 chmod +x gateway-linux-x86_64
 ./gateway-linux-x86_64
 
-# macOS (本地编译)
+# macOS (build locally)
 cargo build --release && ./target/release/gateway
 
 # Windows
 gateway-windows-x86_64.exe
 ```
 
-**监听端口：**
+**Listening ports:**
 
-| 端口 | 协议 | 用途 |
+| Port | Protocol | Purpose |
 |---|---|---|
-| 8080 | HTTP / WebSocket | WS 连接 + 静态文件 |
-| 9999 | UDP | 体感设备数据接入 |
+| 8080 | HTTP / WebSocket | WS connections + static files |
+| 9999 | UDP | Sensor data ingestion |
 | 9090 | HTTP | Prometheus metrics |
 
-### 从源码编译
+### Build from source
 
-**前置条件：** Rust 1.70+
+**Prerequisites:** Rust 1.70+
 
 ```bash
 git clone https://github.com/ouut/ws_gateway.git
 cd ws_gateway
 
-# Linux / macOS — 一条命令
+# Linux / macOS — one command
 cargo build --release && ./target/release/gateway
 ```
 
-#### macOS 编译（Intel / M 芯片通用）
+#### macOS build (Intel / Apple Silicon)
 
-macOS 本地编译无需额外配置，Rust 自动检测本机架构：
+Rust auto-detects the native architecture — no extra configuration needed:
 
 ```bash
-# 安装 Rust
+# Install Rust
 curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
 
-# 编译（自动适配 Intel x86_64 或 Apple Silicon aarch64）
+# Build (auto-targets Intel x86_64 or Apple Silicon aarch64)
 cd gateway
 cargo build --release
 ./target/release/gateway
 ```
 
-#### 交叉编译（Linux 上编译 Windows / ARM）
+#### Cross-compile (Linux → Windows / ARM)
 
 ```bash
-# 安装交叉编译工具链（Debian/Ubuntu）
+# Install cross-compilation toolchains (Debian/Ubuntu)
 apt-get install gcc-mingw-w64-x86-64 gcc-aarch64-linux-gnu
 
-# 一键编译打包 Linux x86_64 / ARM64 / Windows
+# One-command build + package for Linux x86_64 / ARM64 / Windows
 ./scripts/build.sh
 ```
 
-> macOS 交叉编译需要 Apple SDK (osxcross)，建议直接在 macOS 机器上本地编译。`gateway-protocol` 库可在 Linux 上交叉编译到 macOS。
+> Cross-compiling for macOS requires Apple SDK (osxcross). Build natively on a Mac instead. The `gateway-protocol` library can be cross-compiled to macOS from Linux.
 
-## 客户端接入
+## Client Integration
 
-### WebSocket（浏览器 / AI 客户端）
+### WebSocket (browser / AI client)
 
 ```
 ws://host:8080/ws?room=<ROOM>&user=<USER>
 ```
 
-参数说明：
-- `room` — 房间 ID，最长 6 字节 ASCII
-- `user` — 用户 ID，最长 8 字节 ASCII
-- 无鉴权（内网可信环境）
+Parameters:
+- `room` — Room ID, max 6 ASCII bytes
+- `user` — User ID, max 8 ASCII bytes
+- No authentication (trusted LAN only)
 
-**示例：**
+**Example:**
 
 ```javascript
 const ws = new WebSocket('ws://localhost:8080/ws?room=ninja1&user=player_A');
 ws.binaryType = 'arraybuffer';
 
-// 接收消息
+// Receive
 ws.onmessage = (event) => {
     const data = new Uint8Array(event.data);
-    // 用 gateway_protocol.js 解析 24 字节头部 + payload
+    // Parse 24-byte header + payload with gateway_protocol.js
     const packet = gatewayProtocol.decode(data);
     console.log(packet.roomId, packet.payload);
 };
 
-// 发送消息
+// Send
 ws.send(encodedBytes);
 ```
 
 ### JavaScript SDK
 
 ```javascript
-// 从 client_sdk/js/ 引入
 import { encode, decode, PKT_AI_EVENT, TGT_UNICAST } from './gateway_protocol.js';
 
 const wire = encode({
@@ -156,104 +155,106 @@ wire = encode(
     room_id="ninja1", user_id="ai_bot", seq=42,
     payload=b'\x02'
 )
-# wire 可直接写入 WebSocket / UDP socket
+# wire can be written directly to a WebSocket or UDP socket
 ```
 
-## 协议
+## Protocol
 
-24 字节定长二进制头部（大端序）：
+24-byte fixed-length binary header (big-endian):
 
 ```
-偏移: 0      1        2        3        4         10        18         22   24
+Offset:0      1        2        3        4         10        18         22   24
      +------+--------+--------+--------+---------+---------+----------+------+
      |Ver(1)|PktTy(1)|TgtTy(1)|Resv(1) |RoomID(6)|UserID(8)|Seq(4,BE)|Len(2,BE)|
      +------+--------+--------+--------+---------+---------+----------+------+
 ```
 
-| 字段 | 偏移 | 长度 | 说明 |
+| Field | Offset | Size | Description |
 |---|---|---|---|
 | Version | 0 | 1B | `0x02` |
 | Packet Type | 1 | 1B | `0x01` RawMotion / `0x02` AiEvent / `0x03` SystemCmd / `0x04` Heartbeat |
 | Target Type | 2 | 1B | `0x01` Broadcast / `0x02` Unicast |
-| Reserved | 3 | 1B | 必须为 `0x00` |
-| Room ID | 4 | 6B | ASCII 定长，不足右侧补 `\0` |
-| User ID | 10 | 8B | 同上 |
-| Sequence | 18 | 4B | u32 BE，发送方单调递增 |
-| Length | 22 | 2B | u16 BE，Payload 字节数 |
+| Reserved | 3 | 1B | Must be `0x00` |
+| Room ID | 4 | 6B | Fixed-length ASCII, right-padded with `\0` |
+| User ID | 10 | 8B | Same as above |
+| Sequence | 18 | 4B | u32 BE, monotonically increasing per sender |
+| Length | 22 | 2B | u16 BE, payload byte count |
 
-详见 [protocol.md](doc/gateway-protocol/protocol.md)。
+See [protocol.md](doc/gateway-protocol/protocol.md) for full details.
 
-## 配置
+## Configuration
 
-网关通过环境变量配置（当前使用默认值）：
+Default values (currently hardcoded):
 
-| 变量 | 默认值 | 说明 |
+| Variable | Default | Description |
 |---|---|---|
-| `UDP_PORT` | 9999 | UDP 监听端口 |
-| `WS_PORT` | 8080 | WebSocket + 静态文件端口 |
-| `METRICS_PORT` | 9090 | Prometheus metrics 端口 |
-| `PING_INTERVAL` | 10s | WS 心跳间隔 |
-| `PONG_TIMEOUT` | 30s | WS 心跳超时 |
-| `CHANNEL_CAPACITY` | 64 | 每连接发送队列容量 |
+| `UDP_PORT` | 9999 | UDP listen port |
+| `WS_PORT` | 8080 | WebSocket + static files port |
+| `METRICS_PORT` | 9090 | Prometheus metrics port |
+| `PING_INTERVAL` | 10s | WS heartbeat interval |
+| `PONG_TIMEOUT` | 30s | WS heartbeat timeout |
+| `CHANNEL_CAPACITY` | 64 | Per-connection send queue capacity |
 
-日志级别：`RUST_LOG=gateway=info`
+Log level: `RUST_LOG=gateway=info`
 
 ## Metrics
 
-访问 `http://host:9090/metrics` 查看 Prometheus 格式指标：
+Visit `http://host:9090/metrics` for Prometheus-format metrics:
 
-| 指标 | 说明 |
+| Metric | Description |
 |---|---|
-| `active_connections_total` | 活跃连接数（按 room 标签） |
-| `active_rooms_total` | 活跃房间数 |
-| `packets_routed_total` | 路由包数（按 Packet Type / Target Type） |
-| `packets_dropped_total` | 丢弃包数（按丢弃原因） |
-| `route_latency_seconds` | 路由延迟直方图 |
+| `active_connections_total` | Active connections (labeled by room) |
+| `active_rooms_total` | Active rooms |
+| `packets_routed_total` | Packets routed (labeled by Packet Type / Target Type) |
+| `packets_dropped_total` | Packets dropped (labeled by drop reason) |
+| `route_latency_seconds` | Route latency histogram |
 
-## 测试
+## Testing
 
 ```bash
-# 协议 crate
+# Protocol crate
 cd doc/gateway-protocol && cargo test    # 10 tests
 
-# 网关
+# Gateway
 cd gateway && cargo test                 # 10 tests
 
 # JS SDK
 node client_sdk/js/gateway_protocol.js   # self-tests
 ```
 
-## 安全说明
+## Security
 
-本网关**不做鉴权和数据完整性校验**，设计用于**内网可信环境**。
+This gateway performs **no authentication and no data integrity checks**. It is designed for **trusted LAN environments only**.
 
-- ❌ 不得直接暴露 `:8080`（WS）或 `:9999`（UDP）到公网
-- ❌ Payload 损坏由业务方自行兜底，网关不校验
-- ✅ 生产环境建议前端加 nginx/CDN，网关仅处理 WS 和 UDP
+- ❌ Never expose `:8080` (WS) or `:9999` (UDP) to the public internet
+- ❌ Corrupted payloads are not detected — downstream consumers are responsible
+- ✅ In production, place nginx/CDN in front for static assets; the gateway handles WS and UDP only
 
-## 项目结构
+## Project Structure
 
 ```
 ws_gateway/
 ├── doc/
-│   ├── gateway-protocol/          # 协议 crate（单一真源）
-│   │   ├── src/lib.rs             # 24 字节头部编码/解码 + 测试
-│   │   └── protocol.md            # 协议规范
+│   ├── gateway-protocol/          # Protocol crate (single source of truth)
+│   │   ├── src/lib.rs             # 24-byte header encode/decode + tests
+│   │   └── protocol.md            # Protocol specification
 │   ├── rust_gateway_prd_v3.md     # PRD
 │   └── multi_agent_orchestration.md
-├── gateway/                       # 网关实现
+├── gateway/                       # Gateway implementation
 │   ├── src/
-│   │   ├── main.rs                # 入口
-│   │   ├── routing.rs             # 路由核心
-│   │   ├── network.rs             # UDP + WS 网络层
-│   │   ├── observability.rs       # 日志 + metrics + 优雅关闭
-│   │   └── static_files.rs        # 静态文件服务
-│   └── public/                    # 静态文件根目录
+│   │   ├── main.rs                # Entry point
+│   │   ├── routing.rs             # Routing core
+│   │   ├── network.rs             # UDP + WS network layer
+│   │   ├── observability.rs       # Logging + metrics + graceful shutdown
+│   │   └── static_files.rs        # Static file serving
+│   └── public/                    # Static file root
 ├── client_sdk/
-│   ├── python/gateway_protocol.py # Python 参考实现
-│   └── js/gateway_protocol.js     # JavaScript 参考实现
+│   ├── python/gateway_protocol.py # Python reference implementation
+│   └── js/gateway_protocol.js     # JavaScript reference implementation
+├── .github/workflows/
+│   └── build.yml                  # CI/CD: manual trigger, 5 platforms
 └── scripts/
-    └── build.sh                   # 交叉编译打包脚本
+    └── build.sh                   # Cross-compile + packaging script
 ```
 
 ## License
