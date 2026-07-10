@@ -2,3 +2,4 @@
 **/target/
 **/.DS_Store
 .code-server-home/
+dist/
