@@ -21,3 +21,9 @@ metrics = "0.22"
 metrics-exporter-prometheus = { version = "0.14", default-features = false, features = ["http-listener"] }
 tower-http = { version = "0.7.0", features = ["fs", "trace"] }
 tokio-util = { version = "0.7.18", features = ["net", "codec"] }
+
+[dev-dependencies]
+tokio-tungstenite = "0.29"
+futures-util = "0.3"
+url = "2"
+rand = "0.8"

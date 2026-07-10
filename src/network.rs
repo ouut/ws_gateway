@@ -363,3 +363,66 @@ fn record_decode_metric(e: &DecodeError) {
         }
     }
 }
+
+// ---------------------------------------------------------------------------
+// Tests
+// ---------------------------------------------------------------------------
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// Every `DecodeError` variant must be handled by `record_decode_metric`
+    /// without panicking.  This also acts as a completeness check: adding a
+    /// variant without updating the function will cause a compile error.
+    #[test]
+    fn record_decode_metric_covers_all_variants() {
+        let variants: &[DecodeError] = &[
+            DecodeError::TooShort,
+            DecodeError::UnsupportedVersion(0x99),
+            DecodeError::NonZeroReserved(0xFF),
+            DecodeError::UnknownPacketType(0xFE),
+            DecodeError::UnknownTargetType(0xFD),
+            DecodeError::NonAsciiRoomId,
+            DecodeError::NonAsciiUserId,
+            DecodeError::LengthMismatch {
+                declared: 10,
+                actual: 5,
+            },
+        ];
+        for v in variants {
+            record_decode_metric(v); // must not panic
+        }
+    }
+
+    #[test]
+    fn udp_metrics_increment() {
+        assert_eq!(UDP_PACKETS_RECEIVED.load(Ordering::Relaxed), 0);
+        UDP_PACKETS_RECEIVED.fetch_add(1, Ordering::Relaxed);
+        assert_eq!(UDP_PACKETS_RECEIVED.load(Ordering::Relaxed), 1);
+    }
+
+    #[test]
+    fn ws_metrics_snapshot() {
+        WS_CONNECTIONS_ACTIVE.fetch_add(1, Ordering::Relaxed);
+        let m = metrics();
+        assert_eq!(m.ws_connections_active, 1);
+        WS_CONNECTIONS_ACTIVE.fetch_sub(1, Ordering::Relaxed);
+    }
+
+    #[test]
+    fn heartbeat_constants_are_sane() {
+        // Ping interval must be shorter than pong timeout to give clients
+        // time to respond before being disconnected.
+        assert!(PING_INTERVAL < PONG_TIMEOUT);
+        assert_eq!(PING_INTERVAL.as_secs(), 10);
+        assert_eq!(PONG_TIMEOUT.as_secs(), 30);
+    }
+
+    #[test]
+    fn channel_capacity_is_reasonable() {
+        // Must be at least 1 and not absurdly large.
+        assert!(WS_CHANNEL_CAPACITY >= 1);
+        assert!(WS_CHANNEL_CAPACITY <= 1024);
+    }
+}

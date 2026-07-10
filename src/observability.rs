@@ -213,3 +213,70 @@ where
 
     std::process::exit(0);
 }
+
+// ---------------------------------------------------------------------------
+// Tests
+// ---------------------------------------------------------------------------
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn drop_reason_label_covers_all_variants() {
+        let variants: &[DecodeError] = &[
+            DecodeError::TooShort,
+            DecodeError::UnsupportedVersion(0x99),
+            DecodeError::NonZeroReserved(0xFF),
+            DecodeError::UnknownPacketType(0xFE),
+            DecodeError::UnknownTargetType(0xFD),
+            DecodeError::NonAsciiRoomId,
+            DecodeError::NonAsciiUserId,
+            DecodeError::LengthMismatch {
+                declared: 10,
+                actual: 5,
+            },
+        ];
+        let mut labels = std::collections::HashSet::new();
+        for v in variants {
+            let label = drop_reason_label(v);
+            assert!(!label.is_empty());
+            assert!(labels.insert(label), "duplicate label: {label}");
+        }
+    }
+
+    #[test]
+    fn packet_type_labels_are_unique() {
+        let types = &[
+            PacketType::RawMotion,
+            PacketType::AiEvent,
+            PacketType::SystemCmd,
+            PacketType::Heartbeat,
+        ];
+        let mut labels = std::collections::HashSet::new();
+        for t in types {
+            let label = packet_type_label(*t);
+            assert!(!label.is_empty());
+            assert!(labels.insert(label), "duplicate label: {label}");
+        }
+    }
+
+    #[test]
+    fn target_type_labels_are_unique() {
+        let types = &[TargetType::Broadcast, TargetType::Unicast];
+        let mut labels = std::collections::HashSet::new();
+        for t in types {
+            let label = target_type_label(*t);
+            assert!(!label.is_empty());
+            assert!(labels.insert(label), "duplicate label: {label}");
+        }
+    }
+
+    #[test]
+    fn logging_init_is_idempotent() {
+        // Must not panic on repeated calls.
+        init_logging();
+        init_logging();
+        init_logging();
+    }
+}
