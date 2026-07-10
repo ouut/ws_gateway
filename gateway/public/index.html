@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gateway — Static File Test</title>
+    <style>
+        :root {
+            color-scheme: light dark;
+        }
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            max-width: 640px;
+            margin: 80px auto;
+            padding: 0 20px;
+        }
+        h1 { margin-bottom: 0.25em; }
+        .ok { color: #2da44e; font-weight: bold; }
+        code {
+            background: rgba(127,127,127,0.15);
+            padding: 1px 5px;
+            border-radius: 4px;
+            font-size: 0.9em;
+        }
+    </style>
+</head>
+<body>
+    <h1>Gateway Static File Server</h1>
+    <p class="ok">✔ Static file serving is working.</p>
+    <p>This page is served from <code>public/index.html</code> via
+       <code>tower-http::services::ServeDir</code> on port <code>8080</code>.</p>
+    <hr>
+    <h2>Endpoints</h2>
+    <ul>
+        <li><code>/</code> — this page (static files)</li>
+        <li><code>/ws</code> — WebSocket upgrade</li>
+        <li><code>:9090/metrics</code> — Prometheus metrics</li>
+        <li><code>:9999</code> — UDP receiver (no HTTP)</li>
+    </ul>
+</body>
+</html>

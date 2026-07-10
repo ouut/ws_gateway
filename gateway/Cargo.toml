@@ -1,0 +1,22 @@
+[package]
+name = "gateway"
+version = "0.1.0"
+edition = "2021"
+description = "Rust Smart Gateway"
+
+[dependencies]
+gateway-protocol = { path = "/home/coder/project/doc/gateway-protocol" }
+tokio = { version = "1", features = ["full"] }
+axum = { version = "0.8", features = ["ws"] }
+bytes = "1"
+futures-util = "0.3"
+async-trait = "0.1"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+serde = { version = "1", features = ["derive"] }
+dashmap = "6"
+log = "0.4"
+metrics = "0.22"
+metrics-exporter-prometheus = "0.14"
+tower-http = { version = "0.7.0", features = ["fs", "trace"] }
+tokio-util = { version = "0.7.18", features = ["net", "codec"] }

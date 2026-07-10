@@ -1,0 +1,10 @@
+[package]
+name = "gateway-protocol"
+version = "0.1.0"
+edition = "2021"
+description = "Shared wire-format definitions for the Rust smart gateway (PRD v3). Single source of truth for the 24-byte packet header."
+
+[dependencies]
+bytes = "1"
+
+[dev-dependencies]
