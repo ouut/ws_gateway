@@ -29,18 +29,22 @@
 
 从 [Releases](https://github.com/ouut/ws_gateway/releases) 下载对应平台的二进制：
 
-| 平台 | 文件 |
-|---|---|
-| Linux x86_64 | `gateway-linux-x86_64` |
-| Linux ARM64 | `gateway-linux-aarch64` |
-| Windows x86_64 | `gateway-windows-x86_64.exe` |
+| 平台 | 文件 | 说明 |
+|---|---|---|
+| Linux x86_64 | `gateway-linux-x86_64` | |
+| Linux ARM64 | `gateway-linux-aarch64` | 树莓派、ARM 服务器 |
+| Windows x86_64 | `gateway-windows-x86_64.exe` | |
+| macOS (Intel/M 芯片) | 见下方编译 | Release 无预编译二进制，需本地编译 |
 
 ### 运行
 
 ```bash
-# Linux / macOS
+# Linux
 chmod +x gateway-linux-x86_64
 ./gateway-linux-x86_64
+
+# macOS (本地编译)
+cargo build --release && ./target/release/gateway
 
 # Windows
 gateway-windows-x86_64.exe
@@ -62,24 +66,35 @@ gateway-windows-x86_64.exe
 git clone https://github.com/ouut/ws_gateway.git
 cd ws_gateway
 
-# 编译
-cargo build --release
+# Linux / macOS — 一条命令
+cargo build --release && ./target/release/gateway
+```
 
-# 运行
+#### macOS 编译（Intel / M 芯片通用）
+
+macOS 本地编译无需额外配置，Rust 自动检测本机架构：
+
+```bash
+# 安装 Rust
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+
+# 编译（自动适配 Intel x86_64 或 Apple Silicon aarch64）
+cd gateway
+cargo build --release
 ./target/release/gateway
 ```
 
-**交叉编译所有平台：**
+#### 交叉编译（Linux 上编译 Windows / ARM）
 
 ```bash
 # 安装交叉编译工具链（Debian/Ubuntu）
 apt-get install gcc-mingw-w64-x86-64 gcc-aarch64-linux-gnu
 
-# 一键编译打包
+# 一键编译打包 Linux x86_64 / ARM64 / Windows
 ./scripts/build.sh
 ```
 
-产物在 `dist/` 目录下。
+> macOS 交叉编译需要 Apple SDK (osxcross)，建议直接在 macOS 机器上本地编译。`gateway-protocol` 库可在 Linux 上交叉编译到 macOS。
 
 ## 客户端接入
 
