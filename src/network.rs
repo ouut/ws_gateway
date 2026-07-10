@@ -134,6 +134,7 @@ pub async fn run_ws(router: Arc<Router>, addr: SocketAddr) {
 
     let app = AxumRouter::new()
         .route("/ws", get(ws_handler))
+        .fallback_service(tower_http::services::ServeDir::new("public"))
         .with_state(state);
 
     tracing::info!(%addr, "WebSocket server starting");
