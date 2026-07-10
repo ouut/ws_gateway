@@ -184,13 +184,38 @@ See [protocol.md](doc/gateway-protocol/protocol.md) for full details.
 
 ## Configuration
 
-Default values (currently hardcoded):
+### CLI options
 
-| Variable | Default | Description |
+```
+./gateway --help
+```
+
+| Flag | Default | Description |
 |---|---|---|
-| `UDP_PORT` | 9999 | UDP listen port |
-| `WS_PORT` | 8080 | WebSocket + static files port |
-| `METRICS_PORT` | 9090 | Prometheus metrics port |
+| `--udp` | `0.0.0.0:9999` | UDP listen address |
+| `--ws` | `0.0.0.0:8080` | WebSocket + static files listen address |
+| `--metrics` | `0.0.0.0:9090` | Prometheus metrics listen address |
+| `--public-dir` | `./public` | Static files directory |
+| `--version` | — | Print version |
+| `--help` | — | Print help |
+
+### Examples
+
+```bash
+# All defaults
+./gateway
+
+# Custom ports
+./gateway --ws 0.0.0.0:3000 --metrics 0.0.0.0:3001
+
+# Custom static files + UDP
+./gateway --public-dir /var/www/gateway --udp 0.0.0.0:12345
+```
+
+### Internal constants
+
+| Constant | Value | Description |
+|---|---|---|
 | `PING_INTERVAL` | 10s | WS heartbeat interval |
 | `PONG_TIMEOUT` | 30s | WS heartbeat timeout |
 | `CHANNEL_CAPACITY` | 64 | Per-connection send queue capacity |
