@@ -46,11 +46,11 @@ jobs:
       - name: Test (native only)
         if: matrix.target.triple == 'x86_64-unknown-linux-gnu'
         run: |
-          cargo test -p gateway-protocol
-          cargo test -p gateway
+          cargo test --manifest-path doc/gateway-protocol/Cargo.toml
+          cargo test
 
       - name: Build
-        run: cargo build --release -p gateway --target ${{ matrix.target.triple }}
+        run: cargo build --release --target ${{ matrix.target.triple }}
 
       - name: Rename binary
         run: cp target/${{ matrix.target.triple }}/release/gateway gateway-${{ matrix.target.name }}
@@ -79,7 +79,7 @@ jobs:
           targets: ${{ matrix.target.triple }}
 
       - name: Build
-        run: cargo build --release -p gateway --target ${{ matrix.target.triple }}
+        run: cargo build --release --target ${{ matrix.target.triple }}
 
       - name: Rename binary
         run: cp target/${{ matrix.target.triple }}/release/gateway gateway-${{ matrix.target.name }}
@@ -101,7 +101,7 @@ jobs:
         uses: dtolnay/rust-toolchain@stable
 
       - name: Build
-        run: cargo build --release -p gateway
+        run: cargo build --release
 
       - name: Rename binary
         run: copy target\release\gateway.exe gateway-windows-x86_64.exe
@@ -190,7 +190,7 @@ jobs:
 
             ```bash
             git clone https://github.com/ouut/ws_gateway.git
-            cd ws_gateway/gateway
+            cd ws_gateway
             cargo build --release
             ```
           draft: false

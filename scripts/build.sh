@@ -18,9 +18,8 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
 DIST_DIR="$PROJECT_DIR/dist"
-GATEWAY_DIR="$PROJECT_DIR/gateway"
 PROTOCOL_DIR="$PROJECT_DIR/doc/gateway-protocol"
-VERSION="${VERSION:-$(grep '^version' "$GATEWAY_DIR/Cargo.toml" | head -1 | sed 's/.*"\(.*\)"/\1/')}"
+VERSION="${VERSION:-$(grep '^version' "$PROJECT_DIR/Cargo.toml" | head -1 | sed 's/.*"\(.*\)"/\1/')}"
 
 # ── 参数解析 ──────────────────────────────────────────────────────────────────
 
@@ -92,11 +91,11 @@ check_tools() {
 
 build_gateway() {
     local target="$1" binary="$2" display="$3"
-    local src="$GATEWAY_DIR/target/$target/release/$binary"
+    local src="$PROJECT_DIR/target/$target/release/$binary"
 
     log "编译 gateway → $display ($target)"
 
-    (cd "$GATEWAY_DIR" && cargo build --release --target "$target" 2>&1) | \
+    (cd "$PROJECT_DIR" && cargo build --release --target "$target" 2>&1) | \
         grep -E "Compiling gateway|error|warning: build failed" || true
 
     if [ -f "$src" ]; then
@@ -132,7 +131,7 @@ package() {
             fi
         fi
 
-        local src="$GATEWAY_DIR/target/$target/release/$binary"
+        local src="$PROJECT_DIR/target/$target/release/$binary"
         local dest="$release_dir/gateway-$display$ext"
 
         if [ -f "$src" ]; then

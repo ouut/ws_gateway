@@ -79,7 +79,7 @@ Rust auto-detects the native architecture — no extra configuration needed:
 curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
 
 # Build (auto-targets Intel x86_64 or Apple Silicon aarch64)
-cd gateway
+cd ws_gateway
 cargo build --release
 ./target/release/gateway
 ```
@@ -213,10 +213,10 @@ Visit `http://host:9090/metrics` for Prometheus-format metrics:
 
 ```bash
 # Protocol crate
-cd doc/gateway-protocol && cargo test    # 10 tests
+cargo test --manifest-path doc/gateway-protocol/Cargo.toml    # 10 tests
 
 # Gateway
-cd gateway && cargo test                 # 10 tests
+cargo test                                 # 10 tests
 
 # JS SDK
 node client_sdk/js/gateway_protocol.js   # self-tests

@@ -13,8 +13,13 @@ use std::sync::Arc;
 use gateway_protocol::{PacketHeader, PacketType, TargetType};
 use tracing::info;
 
-use gateway::observability::{init_logging, init_metrics, shutdown_signal};
-use gateway::routing::Router;
+mod routing;
+mod network;
+mod observability;
+mod static_files;
+
+use observability::{init_logging, init_metrics, shutdown_signal};
+use routing::Router;
 
 const UDP_ADDR: SocketAddr = SocketAddr::new(std::net::IpAddr::V4(Ipv4Addr::UNSPECIFIED), 9999);
 const WS_ADDR: SocketAddr  = SocketAddr::new(std::net::IpAddr::V4(Ipv4Addr::UNSPECIFIED), 8080);
@@ -33,10 +38,10 @@ async fn main() {
     let router = Arc::new(Router::new());
     info!("router initialised");
 
-    let udp_handle = tokio::spawn(gateway::network::run_udp(Arc::clone(&router), UDP_ADDR));
+    let udp_handle = tokio::spawn(network::run_udp(Arc::clone(&router), UDP_ADDR));
     info!("udp task spawned on {UDP_ADDR}");
 
-    let ws_handle = tokio::spawn(gateway::network::run_ws(Arc::clone(&router), WS_ADDR));
+    let ws_handle = tokio::spawn(network::run_ws(Arc::clone(&router), WS_ADDR));
     info!("ws + static server spawned on {WS_ADDR}");
 
     shutdown_signal().await;
