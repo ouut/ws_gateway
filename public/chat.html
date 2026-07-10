@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gateway Chat Demo</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: #0f172a; color: #e2e8f0;
+    display: flex; justify-content:center; align-items:center;
+    min-height:100vh; padding:20px;
+  }
+  .container {
+    width:100%; max-width:600px;
+    background:#1e293b; border-radius:16px;
+    box-shadow:0 25px 50px rgba(0,0,0,.4);
+    overflow:hidden;
+  }
+  .header {
+    background:#334155; padding:16px 20px;
+    display:flex; align-items:center; gap:12px;
+  }
+  .header h1 { font-size:18px; font-weight:600; }
+  .status {
+    width:10px; height:10px; border-radius:50%; flex-shrink:0;
+    background:#ef4444;
+  }
+  .status.connected { background:#22c55e; animation:pulse 2s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+
+  .connect-panel {
+    padding:16px 20px; display:flex; gap:8px; flex-wrap:wrap;
+    background:#0f172a; border-bottom:1px solid #334155;
+  }
+  .connect-panel input {
+    flex:1; min-width:100px;
+    padding:8px 12px; border-radius:8px; border:1px solid #475569;
+    background:#1e293b; color:#e2e8f0; font-size:14px; outline:none;
+  }
+  .connect-panel input:focus { border-color:#3b82f6; }
+  .connect-panel button {
+    padding:8px 16px; border-radius:8px; border:none;
+    background:#3b82f6; color:#fff; font-size:14px; font-weight:600;
+    cursor:pointer; transition:background .2s;
+  }
+  .connect-panel button:hover { background:#2563eb; }
+  .connect-panel button.disconnect { background:#ef4444; }
+  .connect-panel button.disconnect:hover { background:#dc2626; }
+
+  .messages {
+    height:400px; overflow-y:auto; padding:16px 20px;
+    display:flex; flex-direction:column; gap:8px;
+  }
+  .msg {
+    max-width:85%; padding:8px 12px; border-radius:12px;
+    font-size:14px; line-height:1.5; word-break:break-word;
+  }
+  .msg.system {
+    align-self:center; max-width:100%;
+    background:transparent; color:#94a3b8; font-size:12px;
+    text-align:center;
+  }
+  .msg.self {
+    align-self:flex-end; background:#3b82f6; color:#fff;
+    border-bottom-right-radius:4px;
+  }
+  .msg.other {
+    align-self:flex-start; background:#334155; color:#e2e8f0;
+    border-bottom-left-radius:4px;
+  }
+  .msg .sender {
+    font-size:11px; font-weight:600; margin-bottom:2px;
+    opacity:.7;
+  }
+
+  .input-panel {
+    display:flex; gap:8px; padding:12px 20px;
+    border-top:1px solid #334155; background:#0f172a;
+  }
+  .input-panel input {
+    flex:1; padding:10px 14px; border-radius:10px;
+    border:1px solid #475569; background:#1e293b;
+    color:#e2e8f0; font-size:14px; outline:none;
+  }
+  .input-panel input:focus { border-color:#3b82f6; }
+  .input-panel button {
+    padding:10px 18px; border-radius:10px; border:none;
+    background:#3b82f6; color:#fff; font-size:14px; font-weight:600;
+    cursor:pointer;
+  }
+  .input-panel button:disabled { opacity:.3; cursor:default; }
+
+  .info {
+    padding:8px 20px; font-size:11px; color:#64748b;
+    background:#0f172a; text-align:center;
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <div class="status" id="status"></div>
+    <h1>Gateway Chat</h1>
+  </div>
+
+  <div class="connect-panel" id="connectPanel">
+    <input id="roomInput" placeholder="Room (e.g. lobby)" maxlength="6" value="lobby">
+    <input id="userInput" placeholder="Name" maxlength="8" value="user1">
+    <button id="connectBtn" onclick="toggleConnection()">Connect</button>
+  </div>
+
+  <div class="messages" id="messages">
+    <div class="msg system">Enter a room and name, then click Connect</div>
+  </div>
+
+  <div class="input-panel">
+    <input id="msgInput" placeholder="Type a message..." disabled onkeydown="if(event.key==='Enter')sendMessage()">
+    <button id="sendBtn" onclick="sendMessage()" disabled>Send</button>
+  </div>
+  <div class="info" id="info">Gateway binary protocol — 24-byte header + payload</div>
+</div>
+
+<script src="gateway_protocol.js"></script>
+<script>
+// ── State ────────────────────────────────────────────────────────────────────
+let ws = null;
+let connected = false;
+let myRoom = '';
+let myUser = '';
+let seq = 0;
+const PACKETS = { total:0, bytes:0 };
+
+// ── DOM refs ─────────────────────────────────────────────────────────────────
+const $messages   = document.getElementById('messages');
+const $msgInput   = document.getElementById('msgInput');
+const $sendBtn    = document.getElementById('sendBtn');
+const $connectBtn = document.getElementById('connectBtn');
+const $status     = document.getElementById('status');
+const $info       = document.getElementById('info');
+const $roomInput  = document.getElementById('roomInput');
+const $userInput  = document.getElementById('userInput');
+
+// ── Connect / Disconnect ─────────────────────────────────────────────────────
+function toggleConnection() {
+  connected ? disconnect() : connect();
+}
+
+function connect() {
+  const room = $roomInput.value.trim();
+  const user = $userInput.value.trim();
+  if (!room || !user) return addMsg('system', 'Room and name required');
+
+  myRoom = room; myUser = user; seq = 0;
+  const url = `ws://${location.hostname}:8080/ws?room=${encodeURIComponent(room)}&user=${encodeURIComponent(user)}`;
+
+  try {
+    ws = new WebSocket(url);
+    ws.binaryType = 'arraybuffer';
+  } catch(e) {
+    addMsg('system', 'WebSocket error: ' + e.message);
+    return;
+  }
+
+  ws.onopen = () => {
+    connected = true;
+    $status.classList.add('connected');
+    $connectBtn.textContent = 'Disconnect';
+    $connectBtn.classList.add('disconnect');
+    $roomInput.disabled = $userInput.disabled = true;
+    $msgInput.disabled = $sendBtn.disabled = false;
+    $msgInput.focus();
+    addMsg('system', `Joined room "${room}" as "${user}"`);
+    updateInfo();
+  };
+
+  ws.onmessage = (event) => {
+    const raw = new Uint8Array(event.data);
+    PACKETS.total++; PACKETS.bytes += raw.byteLength;
+    updateInfo();
+
+    try {
+      const pkt = gatewayProtocol.decode(raw);
+      if (pkt.pktType === gatewayProtocol.PKT_AI_EVENT) {
+        const text = new TextDecoder().decode(pkt.payload);
+        const cls = (pkt.userId === myUser) ? 'self' : 'other';
+        addMsg(cls, text, pkt.userId !== myUser ? pkt.userId : null);
+      } else if (pkt.pktType === gatewayProtocol.PKT_SYSTEM_CMD) {
+        addMsg('system', new TextDecoder().decode(pkt.payload));
+      }
+    } catch(e) {
+      addMsg('system', 'Decode error: ' + e.message);
+    }
+  };
+
+  ws.onclose = () => {
+    addMsg('system', 'Disconnected');
+    resetUI();
+  };
+
+  ws.onerror = () => {
+    addMsg('system', 'Connection error');
+    resetUI();
+  };
+}
+
+function disconnect() {
+  if (ws) ws.close(1000, 'Bye');
+  resetUI();
+}
+
+function resetUI() {
+  connected = false;
+  $status.classList.remove('connected');
+  $connectBtn.textContent = 'Connect';
+  $connectBtn.classList.remove('disconnect');
+  $roomInput.disabled = $userInput.disabled = false;
+  $msgInput.disabled = $sendBtn.disabled = true;
+  ws = null;
+}
+
+// ── Send ─────────────────────────────────────────────────────────────────────
+function sendMessage() {
+  const text = $msgInput.value.trim();
+  if (!text || !ws) return;
+
+  const payload = new TextEncoder().encode(text);
+  const wire = gatewayProtocol.encode({
+    version: 0x02,
+    pktType: gatewayProtocol.PKT_AI_EVENT,
+    tgtType: gatewayProtocol.TGT_BROADCAST,
+    roomId: myRoom,
+    userId: myUser,
+    seq: seq++,
+    payload: payload,
+  });
+
+  ws.send(wire);
+  addMsg('self', text);
+  $msgInput.value = '';
+  $msgInput.focus();
+}
+
+// ── Display ──────────────────────────────────────────────────────────────────
+function addMsg(cls, text, sender) {
+  const div = document.createElement('div');
+  div.className = 'msg ' + cls;
+  if (sender) {
+    div.innerHTML = `<div class="sender">${escapeHtml(sender)}</div>${escapeHtml(text)}`;
+  } else {
+    div.textContent = text;
+  }
+  $messages.appendChild(div);
+  $messages.scrollTop = $messages.scrollHeight;
+}
+
+function escapeHtml(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function updateInfo() {
+  $info.textContent = `Packets: ${PACKETS.total} | Data: ${(PACKETS.bytes/1024).toFixed(1)} KB | Protocol v0x02`;
+}
+</script>
+</body>
+</html>
