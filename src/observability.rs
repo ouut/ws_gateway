@@ -8,6 +8,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::OnceLock;
 use std::time::Duration;
 
+use axum::routing::get;
 use gateway_protocol::{DecodeError, PacketType, TargetType};
 use metrics::{counter, describe_counter, describe_gauge, describe_histogram, gauge, histogram, Unit};
 use metrics_exporter_prometheus::PrometheusBuilder;
@@ -121,10 +122,29 @@ pub fn init_metrics(addr: SocketAddr) {
         Unit::Seconds,
         "End-to-end route latency histogram in seconds"
     );
-    PrometheusBuilder::new()
-        .with_http_listener(addr)
-        .install()
-        .expect("failed to install Prometheus metrics exporter");
+
+    let handle = PrometheusBuilder::new()
+        .install_recorder()
+        .expect("failed to install Prometheus metrics recorder");
+
+    // Zero-initialise every metric so the Prometheus exporter emits them
+    // even before any data has been recorded.
+    gauge!("active_connections_total", "room" => "").set(0.0);
+    gauge!("active_rooms_total").set(0.0);
+    counter!("packets_routed_total", "packet_type" => "RawMotion", "target_type" => "Broadcast").increment(0);
+    counter!("packets_dropped_total", "reason" => "init").increment(0);
+    histogram!("route_latency_seconds").record(0.0);
+
+    // Bind synchronously so the port is open before we return.
+    let std_listener = std::net::TcpListener::bind(addr)
+        .expect("failed to bind metrics TCP listener");
+    std_listener.set_nonblocking(true).unwrap();
+    let listener = tokio::net::TcpListener::from_std(std_listener).unwrap();
+
+    tokio::spawn(async move {
+        let app = axum::Router::new().route("/metrics", get(move || async move { handle.render() }));
+        axum::serve(listener, app).await.unwrap();
+    });
     info!("[metrics] Prometheus endpoint listening on http://{addr}/metrics");
 }
 

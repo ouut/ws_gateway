@@ -21,7 +21,7 @@ use axum::routing::get;
 use axum::Router as AxumRouter;
 use bytes::Bytes;
 use futures_util::{SinkExt, StreamExt};
-use gateway_protocol::{DecodeError, PacketHeader, HEADER_LEN, PROTOCOL_VERSION};
+use gateway_protocol::{DecodeError, PacketHeader, HEADER_LEN, PROTOCOL_VERSION, ROOM_ID_LEN, USER_ID_LEN};
 use serde::Deserialize;
 use tokio::net::UdpSocket;
 use tokio::time::{interval, Duration, Instant};
@@ -180,6 +180,22 @@ async fn ws_handler(
         return (
             axum::http::StatusCode::BAD_REQUEST,
             "user must be ASCII",
+        )
+            .into_response();
+    }
+
+    // Reject Room / User ID exceeding protocol-defined max lengths.
+    if params.room.len() > ROOM_ID_LEN {
+        return (
+            axum::http::StatusCode::BAD_REQUEST,
+            "room too long",
+        )
+            .into_response();
+    }
+    if params.user.len() > USER_ID_LEN {
+        return (
+            axum::http::StatusCode::BAD_REQUEST,
+            "user too long",
         )
             .into_response();
     }

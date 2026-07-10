@@ -200,7 +200,7 @@ fn ws_two_users_broadcast() {
 }
 
 #[test]
-#[ignore]
+
 fn ws_sequence_preserved() {
     let (_child, ws_port, _) = spawn_gateway();
     let rt = tokio::runtime::Builder::new_current_thread()
@@ -251,11 +251,12 @@ fn ws_reject_non_ascii_room() {
 }
 
 #[test]
-#[ignore]
+
 fn ws_duplicate_user_kicks_old() {
     let (_child, ws_port, _) = spawn_gateway();
     let rt = tokio::runtime::Builder::new_current_thread()
         .enable_io()
+        .enable_time()
         .build()
         .unwrap();
     rt.block_on(async {
@@ -299,7 +300,7 @@ fn ws_duplicate_user_kicks_old() {
 // ═══════════════════════════════════════════════════════════════════════════
 
 #[test]
-#[ignore]
+
 fn udp_to_ws_broadcast() {
     let (_child, ws_port, udp_port, _) = spawn_gateway_with_udp();
     let rt = tokio::runtime::Builder::new_current_thread()
@@ -308,7 +309,7 @@ fn udp_to_ws_broadcast() {
         .unwrap();
     rt.block_on(async {
         let (mut ws, _) = tokio_tungstenite::connect_async(
-            format!("ws://127.0.0.1:{ws_port}/ws?room=udptest&user=A"),
+            format!("ws://127.0.0.1:{ws_port}/ws?room=udpts&user=A"),
         )
         .await
         .unwrap();
@@ -337,7 +338,7 @@ fn udp_to_ws_broadcast() {
 }
 
 #[test]
-#[ignore]
+
 fn udp_truncated_packet_dropped() {
     let (_child, ws_port, udp_port, _) = spawn_gateway_with_udp();
     let rt = tokio::runtime::Builder::new_current_thread()
@@ -346,7 +347,7 @@ fn udp_truncated_packet_dropped() {
         .unwrap();
     rt.block_on(async {
         let (mut ws, _) = tokio_tungstenite::connect_async(
-            format!("ws://127.0.0.1:{ws_port}/ws?room=udpdrop&user=A"),
+            format!("ws://127.0.0.1:{ws_port}/ws?room=udpdr&user=A"),
         )
         .await
         .unwrap();
@@ -373,7 +374,7 @@ fn udp_truncated_packet_dropped() {
 }
 
 #[test]
-#[ignore]
+
 fn udp_wrong_version_dropped() {
     let (_child, ws_port, udp_port, _) = spawn_gateway_with_udp();
     let rt = tokio::runtime::Builder::new_current_thread()
@@ -418,7 +419,7 @@ fn udp_wrong_version_dropped() {
 // ═══════════════════════════════════════════════════════════════════════════
 
 #[test]
-#[ignore]
+
 fn metrics_endpoint_exposes_counters() {
     let (_child, _ws_port, metrics_port) = spawn_gateway();
     let body = http_get("127.0.0.1", metrics_port, "/metrics");

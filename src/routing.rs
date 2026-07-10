@@ -311,14 +311,15 @@ impl Router {
         target_user: &str,
         tx: &BoundedSender<Bytes>,
     ) {
+        let packet = header.encode(payload);
         match header.packet_type {
             PacketType::RawMotion => {
                 // Real-time priority: drop oldest frame, insert newest.
-                tx.send_drop_oldest(payload.clone());
+                tx.send_drop_oldest(packet);
             }
             PacketType::SystemCmd => {
                 // Reliability priority: retry with bounded await.
-                match tx.try_send(payload.clone()) {
+                match tx.try_send(packet) {
                     Ok(()) => { /* delivered */ }
                     Err(returned) => {
                         warn!(
@@ -357,7 +358,7 @@ impl Router {
             }
             // AiEvent, Heartbeat — best effort.
             _ => {
-                if tx.try_send(payload.clone()).is_err() {
+                if tx.try_send(packet).is_err() {
                     debug!(
                         "Packet dropped (channel full): type={:?} room={} user={}",
                         header.packet_type,
@@ -528,11 +529,12 @@ mod tests {
         )
         .unwrap();
 
+        let expected = header.encode(&payload);
         router.route(header, payload.clone()).await;
 
-        // Both users should receive the payload.
-        assert_eq!(rx1.recv().await, Some(payload.clone()));
-        assert_eq!(rx2.recv().await, Some(payload));
+        // Both users should receive the full packet (header + payload).
+        assert_eq!(rx1.recv().await, Some(expected.clone()));
+        assert_eq!(rx2.recv().await, Some(expected));
     }
 
     /// Unicast delivers only to the targeted user.
@@ -555,10 +557,11 @@ mod tests {
         )
         .unwrap();
 
+        let expected = header.encode(&payload);
         router.route(header, payload.clone()).await;
 
         // Alice gets it, Bob does not.
-        assert_eq!(rx1.recv().await, Some(payload));
+        assert_eq!(rx1.recv().await, Some(expected));
         assert!(rx2.try_recv().is_err()); // still empty
     }
 
@@ -580,6 +583,7 @@ mod tests {
             p1.len(),
         )
         .unwrap();
+        let _expected1 = h1.encode(&p1);
         router.route(h1, p1).await;
 
         let p2 = Bytes::from_static(b"frame2");
@@ -592,6 +596,7 @@ mod tests {
             p2.len(),
         )
         .unwrap();
+        let expected2 = h2.encode(&p2);
         router.route(h2, p2).await;
 
         // Third frame should evict the oldest (frame1).
@@ -605,11 +610,12 @@ mod tests {
             p3.len(),
         )
         .unwrap();
+        let expected3 = h3.encode(&p3);
         router.route(h3, p3).await;
 
         // frame1 is gone, frame2 and frame3 remain.
-        assert_eq!(rx.recv().await, Some(Bytes::from_static(b"frame2")));
-        assert_eq!(rx.recv().await, Some(Bytes::from_static(b"frame3")));
+        assert_eq!(rx.recv().await, Some(expected2));
+        assert_eq!(rx.recv().await, Some(expected3));
     }
 
     // -- helper for BoundedReceiver ------------------------------------------
