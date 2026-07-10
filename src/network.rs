@@ -10,6 +10,7 @@
 //! `protocol.md` §4.
 
 use std::net::SocketAddr;
+use std::path::PathBuf;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
 
@@ -129,12 +130,12 @@ struct AppState {
 /// `0.0.0.0:8080`).
 ///
 /// Blocks until the server exits (listener error or graceful shutdown).
-pub async fn run_ws(router: Arc<Router>, addr: SocketAddr) {
+    pub async fn run_ws(router: Arc<Router>, addr: SocketAddr, public_dir: PathBuf) {
     let state = Arc::new(AppState { router });
 
     let app = AxumRouter::new()
         .route("/ws", get(ws_handler))
-        .fallback_service(tower_http::services::ServeDir::new("public"))
+        .fallback_service(tower_http::services::ServeDir::new(&public_dir))
         .with_state(state);
 
     tracing::info!(%addr, "WebSocket server starting");

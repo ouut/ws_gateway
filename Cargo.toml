@@ -6,6 +6,7 @@ description = "Rust Smart Gateway"
 
 [dependencies]
 gateway-protocol = { path = "doc/gateway-protocol" }
+clap = { version = "4", features = ["derive"] }
 tokio = { version = "1", features = ["full"] }
 axum = { version = "0.8", features = ["ws"] }
 bytes = "1"
