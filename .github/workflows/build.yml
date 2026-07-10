@@ -1,21 +1,23 @@
 name: Build & Release
 
 on:
+  push:
+    tags: ["v*"]
   workflow_dispatch:
     inputs:
       version:
-        description: '版本号 (例如 v0.1.1)'
+        description: 'Version tag (e.g. v0.1.2)'
         required: true
         type: string
       create_release:
-        description: '创建 GitHub Release'
+        description: 'Create GitHub Release'
         required: false
         default: true
         type: boolean
 
 jobs:
   # ═══════════════════════════════════════════════════════════════════════
-  # Linux: x86_64 + aarch64 交叉编译
+  # Linux: x86_64 + aarch64 (cross-compile)
   # ═══════════════════════════════════════════════════════════════════════
   linux:
     runs-on: ubuntu-latest
@@ -51,8 +53,7 @@ jobs:
         run: cargo build --release -p gateway --target ${{ matrix.target.triple }}
 
       - name: Rename binary
-        run: |
-          cp target/${{ matrix.target.triple }}/release/gateway gateway-${{ matrix.target.name }}
+        run: cp target/${{ matrix.target.triple }}/release/gateway gateway-${{ matrix.target.name }}
 
       - uses: actions/upload-artifact@v4
         with:
@@ -60,7 +61,7 @@ jobs:
           path: gateway-${{ matrix.target.name }}
 
   # ═══════════════════════════════════════════════════════════════════════
-  # macOS: x86_64 + aarch64 (M芯片)
+  # macOS: x86_64 + aarch64 (Apple Silicon)
   # ═══════════════════════════════════════════════════════════════════════
   macos:
     runs-on: macos-latest
@@ -68,7 +69,7 @@ jobs:
       matrix:
         target:
           - { triple: aarch64-apple-darwin,   name: macos-aarch64 }
-          - { triple: x86_64-apple-darwin,    name: macos-x86_64  }
+          - { triple: x86_64-apple-darwin,    name: macos-x86_64 }
     steps:
       - uses: actions/checkout@v4
 
@@ -81,8 +82,7 @@ jobs:
         run: cargo build --release -p gateway --target ${{ matrix.target.triple }}
 
       - name: Rename binary
-        run: |
-          cp target/${{ matrix.target.triple }}/release/gateway gateway-${{ matrix.target.name }}
+        run: cp target/${{ matrix.target.triple }}/release/gateway gateway-${{ matrix.target.name }}
 
       - uses: actions/upload-artifact@v4
         with:
@@ -112,21 +112,31 @@ jobs:
           path: gateway-windows-x86_64.exe
 
   # ═══════════════════════════════════════════════════════════════════════
-  # Release: 汇总所有平台的二进制 + 打包上传
+  # Release: collect all binaries, create tarball, publish to GitHub Release
   # ═══════════════════════════════════════════════════════════════════════
   release:
     needs: [linux, macos, windows]
     runs-on: ubuntu-latest
-    if: inputs.create_release
+    if: github.event_name == 'push' || inputs.create_release
     steps:
       - uses: actions/checkout@v4
 
-      - name: Create tag
+      - name: Determine version
+        id: ver
+        run: |
+          if [ "${{ github.event_name }}" = "push" ]; then
+            echo "version=${{ github.ref_name }}" >> $GITHUB_OUTPUT
+          else
+            echo "version=${{ inputs.version }}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Create tag (manual trigger only)
+        if: github.event_name == 'workflow_dispatch'
         run: |
           git config user.name "github-actions"
           git config user.email "github-actions@github.com"
-          git tag -a "${{ inputs.version }}" -m "Release ${{ inputs.version }}"
-          git push origin "${{ inputs.version }}"
+          git tag -a "${{ steps.ver.outputs.version }}" -m "Release ${{ steps.ver.outputs.version }}"
+          git push origin "${{ steps.ver.outputs.version }}"
 
       - name: Download all artifacts
         uses: actions/download-artifact@v4
@@ -142,16 +152,16 @@ jobs:
         run: |
           cp doc/gateway-protocol/protocol.md dist/
           cp -r client_sdk dist/
-          echo "gateway ${{ inputs.version }}" > dist/VERSION.txt
+          echo "gateway ${{ steps.ver.outputs.version }}" > dist/VERSION.txt
           echo "build date: $(date -u +'%Y-%m-%dT%H:%M:%SZ')" >> dist/VERSION.txt
 
       - name: Create tarball
         run: tar czf gateway-release.tar.gz -C dist .
 
-      - name: Create GitHub Release
+      - name: Publish GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ inputs.version }}
+          tag_name: ${{ steps.ver.outputs.version }}
           files: |
             dist/gateway-linux-x86_64
             dist/gateway-linux-aarch64
@@ -160,11 +170,11 @@ jobs:
             dist/gateway-macos-aarch64
             gateway-release.tar.gz
           body: |
-            ## Rust 智能网关 — 自动构建
+            ## Rust Smart Gateway — automated build
 
-            ### 二进制文件
+            ### Binaries
 
-            | 平台 | 架构 | 文件 |
+            | Platform | Arch | File |
             |---|---|---|
             | Linux | x86_64 | `gateway-linux-x86_64` |
             | Linux | ARM64 | `gateway-linux-aarch64` |
@@ -172,11 +182,11 @@ jobs:
             | macOS | Apple Silicon (M1/M2/M3) | `gateway-macos-aarch64` |
             | Windows | x86_64 | `gateway-windows-x86_64.exe` |
 
-            ### SDK 与文档
+            ### SDK & Docs
 
-            `gateway-release.tar.gz` 包含所有二进制 + client_sdk (Python/JS) + protocol.md
+            `gateway-release.tar.gz` includes all binaries + client_sdk (Python/JS) + protocol.md.
 
-            ### 源码编译
+            ### Build from source
 
             ```bash
             git clone https://github.com/ouut/ws_gateway.git
