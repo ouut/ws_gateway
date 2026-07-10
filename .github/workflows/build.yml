@@ -1,0 +1,188 @@
+name: Build & Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: '版本号 (例如 v0.1.1)'
+        required: true
+        type: string
+      create_release:
+        description: '创建 GitHub Release'
+        required: false
+        default: true
+        type: boolean
+
+jobs:
+  # ═══════════════════════════════════════════════════════════════════════
+  # Linux: x86_64 + aarch64 交叉编译
+  # ═══════════════════════════════════════════════════════════════════════
+  linux:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        target:
+          - { triple: x86_64-unknown-linux-gnu,   name: linux-x86_64 }
+          - { triple: aarch64-unknown-linux-gnu,  name: linux-aarch64 }
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target.triple }}
+
+      - name: Install cross-compiler (ARM64)
+        if: matrix.target.triple == 'aarch64-unknown-linux-gnu'
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq gcc-aarch64-linux-gnu
+          mkdir -p .cargo
+          echo "[target.aarch64-unknown-linux-gnu]" >> .cargo/config.toml
+          echo 'linker = "aarch64-linux-gnu-gcc"' >> .cargo/config.toml
+
+      - name: Test (native only)
+        if: matrix.target.triple == 'x86_64-unknown-linux-gnu'
+        run: |
+          cargo test -p gateway-protocol
+          cargo test -p gateway
+
+      - name: Build
+        run: cargo build --release -p gateway --target ${{ matrix.target.triple }}
+
+      - name: Rename binary
+        run: |
+          cp target/${{ matrix.target.triple }}/release/gateway gateway-${{ matrix.target.name }}
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: gateway-${{ matrix.target.name }}
+          path: gateway-${{ matrix.target.name }}
+
+  # ═══════════════════════════════════════════════════════════════════════
+  # macOS: x86_64 + aarch64 (M芯片)
+  # ═══════════════════════════════════════════════════════════════════════
+  macos:
+    runs-on: macos-latest
+    strategy:
+      matrix:
+        target:
+          - { triple: aarch64-apple-darwin,   name: macos-aarch64 }
+          - { triple: x86_64-apple-darwin,    name: macos-x86_64  }
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target.triple }}
+
+      - name: Build
+        run: cargo build --release -p gateway --target ${{ matrix.target.triple }}
+
+      - name: Rename binary
+        run: |
+          cp target/${{ matrix.target.triple }}/release/gateway gateway-${{ matrix.target.name }}
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: gateway-${{ matrix.target.name }}
+          path: gateway-${{ matrix.target.name }}
+
+  # ═══════════════════════════════════════════════════════════════════════
+  # Windows: x86_64
+  # ═══════════════════════════════════════════════════════════════════════
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Build
+        run: cargo build --release -p gateway
+
+      - name: Rename binary
+        run: copy target\release\gateway.exe gateway-windows-x86_64.exe
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: gateway-windows-x86_64
+          path: gateway-windows-x86_64.exe
+
+  # ═══════════════════════════════════════════════════════════════════════
+  # Release: 汇总所有平台的二进制 + 打包上传
+  # ═══════════════════════════════════════════════════════════════════════
+  release:
+    needs: [linux, macos, windows]
+    runs-on: ubuntu-latest
+    if: inputs.create_release
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Create tag
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+          git tag -a "${{ inputs.version }}" -m "Release ${{ inputs.version }}"
+          git push origin "${{ inputs.version }}"
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: gateway-*
+          path: dist/
+          merge-multiple: true
+
+      - name: Show dist
+        run: ls -lh dist/
+
+      - name: Pack SDK
+        run: |
+          cp doc/gateway-protocol/protocol.md dist/
+          cp -r client_sdk dist/
+          echo "gateway ${{ inputs.version }}" > dist/VERSION.txt
+          echo "build date: $(date -u +'%Y-%m-%dT%H:%M:%SZ')" >> dist/VERSION.txt
+
+      - name: Create tarball
+        run: tar czf gateway-release.tar.gz -C dist .
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ inputs.version }}
+          files: |
+            dist/gateway-linux-x86_64
+            dist/gateway-linux-aarch64
+            dist/gateway-windows-x86_64.exe
+            dist/gateway-macos-x86_64
+            dist/gateway-macos-aarch64
+            gateway-release.tar.gz
+          body: |
+            ## Rust 智能网关 — 自动构建
+
+            ### 二进制文件
+
+            | 平台 | 架构 | 文件 |
+            |---|---|---|
+            | Linux | x86_64 | `gateway-linux-x86_64` |
+            | Linux | ARM64 | `gateway-linux-aarch64` |
+            | macOS | Intel | `gateway-macos-x86_64` |
+            | macOS | Apple Silicon (M1/M2/M3) | `gateway-macos-aarch64` |
+            | Windows | x86_64 | `gateway-windows-x86_64.exe` |
+
+            ### SDK 与文档
+
+            `gateway-release.tar.gz` 包含所有二进制 + client_sdk (Python/JS) + protocol.md
+
+            ### 源码编译
+
+            ```bash
+            git clone https://github.com/ouut/ws_gateway.git
+            cd ws_gateway/gateway
+            cargo build --release
+            ```
+          draft: false
+          prerelease: false
+          generate_release_notes: true

@@ -5,7 +5,7 @@ edition = "2021"
 description = "Rust Smart Gateway"
 
 [dependencies]
-gateway-protocol = { path = "/home/coder/project/doc/gateway-protocol" }
+gateway-protocol = { path = "../doc/gateway-protocol" }
 tokio = { version = "1", features = ["full"] }
 axum = { version = "0.8", features = ["ws"] }
 bytes = "1"
