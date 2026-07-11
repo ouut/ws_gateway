@@ -61,6 +61,7 @@ pub fn init_logging() {
         .with_env_filter(filter)
         .with_target(true)
         .with_thread_ids(true)
+        .with_ansi(false) // disable ANSI escapes for Windows compatibility
         .init();
     info!("logging initialised");
 }
