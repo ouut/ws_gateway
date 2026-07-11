@@ -164,6 +164,7 @@ function connect() {
   }
 
   ws.onopen = () => {
+    console.log('[chat] WS connected, binaryType=', ws.binaryType, 'protocol=', ws.protocol);
     connected = true;
     $status.classList.add('connected');
     $connectBtn.textContent = 'Disconnect';
@@ -236,7 +237,11 @@ function sendMessage() {
     payload: payload,
   });
 
-  ws.send(wire);
+  // Send as ArrayBuffer to avoid Uint8Array byteOffset issues on some browsers.
+  // wire.buffer may be larger than wire if the TypedArray has an offset.
+  const buf = wire.buffer.slice(wire.byteOffset, wire.byteOffset + wire.byteLength);
+  console.log('[chat] sending', wire.byteLength, 'bytes, version byte=', wire[0].toString(16));
+  ws.send(buf);
   addMsg('self', text);
   $msgInput.value = '';
   $msgInput.focus();

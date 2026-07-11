@@ -240,6 +240,15 @@ function encode(opts) {
 
     out.set(payload, HEADER_LEN);
 
+    // Defensive: verify first byte is version (0x02).
+    // Some browser WebSocket implementations mishandle TypedArray → Binary frame.
+    if (out[0] !== PROTOCOL_VERSION) {
+        throw new EncodeError(
+            'internal: first byte must be 0x' + PROTOCOL_VERSION.toString(16) +
+            ', got 0x' + out[0].toString(16)
+        );
+    }
+
     return out;
 }
 
