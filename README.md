@@ -244,7 +244,7 @@ cargo test -- --test-threads=1
 cargo test --manifest-path doc/gateway-protocol/Cargo.toml
 
 # JS SDK
-node client_sdk/js/gateway_protocol.js
+node public/gateway_protocol.js
 ```
 
 ### Unit tests (19)
