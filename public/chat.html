@@ -12,114 +12,136 @@
     display: flex; justify-content:center; align-items:center;
     min-height:100vh; padding:20px;
   }
-  .container {
-    width:100%; max-width:600px;
-    background:#1e293b; border-radius:16px;
+  .layout { display:flex; gap:12px; width:100%; max-width:800px; height:680px; }
+
+  .main {
+    flex:1; background:#1e293b; border-radius:16px;
     box-shadow:0 25px 50px rgba(0,0,0,.4);
-    overflow:hidden;
+    display:flex; flex-direction:column; overflow:hidden;
   }
   .header {
-    background:#334155; padding:16px 20px;
-    display:flex; align-items:center; gap:12px;
+    background:#334155; padding:14px 18px;
+    display:flex; align-items:center; gap:10px; flex-shrink:0;
   }
-  .header h1 { font-size:18px; font-weight:600; }
-  .status {
-    width:10px; height:10px; border-radius:50%; flex-shrink:0;
-    background:#ef4444;
-  }
+  .header h1 { font-size:16px; font-weight:600; }
+  .status { width:10px; height:10px; border-radius:50%; flex-shrink:0; background:#ef4444; }
   .status.connected { background:#22c55e; animation:pulse 2s infinite; }
   @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+  .dm-target {
+    margin-left:auto; font-size:12px; color:#94a3b8;
+    display:flex; align-items:center; gap:6px;
+  }
+  .dm-target strong { color:#fbbf24; }
+  .dm-target button { background:none; border:1px solid #64748b; color:#94a3b8; border-radius:4px; font-size:11px; padding:1px 6px; cursor:pointer; }
 
   .connect-panel {
-    padding:16px 20px; display:flex; gap:8px; flex-wrap:wrap;
-    background:#0f172a; border-bottom:1px solid #334155;
+    padding:12px 18px; display:flex; gap:8px; flex-wrap:wrap;
+    background:#0f172a; border-bottom:1px solid #334155; flex-shrink:0;
   }
   .connect-panel input {
-    flex:1; min-width:100px;
-    padding:8px 12px; border-radius:8px; border:1px solid #475569;
-    background:#1e293b; color:#e2e8f0; font-size:14px; outline:none;
+    flex:1; min-width:80px; padding:7px 10px; border-radius:8px;
+    border:1px solid #475569; background:#1e293b; color:#e2e8f0; font-size:13px; outline:none;
   }
   .connect-panel input:focus { border-color:#3b82f6; }
   .connect-panel button {
-    padding:8px 16px; border-radius:8px; border:none;
-    background:#3b82f6; color:#fff; font-size:14px; font-weight:600;
-    cursor:pointer; transition:background .2s;
+    padding:7px 14px; border-radius:8px; border:none;
+    background:#3b82f6; color:#fff; font-size:13px; font-weight:600; cursor:pointer; transition:background .2s;
   }
   .connect-panel button:hover { background:#2563eb; }
   .connect-panel button.disconnect { background:#ef4444; }
   .connect-panel button.disconnect:hover { background:#dc2626; }
 
   .messages {
-    height:400px; overflow-y:auto; padding:16px 20px;
+    flex:1; overflow-y:auto; padding:14px 18px;
     display:flex; flex-direction:column; gap:8px;
   }
   .msg {
     max-width:85%; padding:8px 12px; border-radius:12px;
     font-size:14px; line-height:1.5; word-break:break-word;
   }
-  .msg.system {
-    align-self:center; max-width:100%;
-    background:transparent; color:#94a3b8; font-size:12px;
-    text-align:center;
-  }
-  .msg.self {
-    align-self:flex-end; background:#3b82f6; color:#fff;
-    border-bottom-right-radius:4px;
-  }
-  .msg.other {
-    align-self:flex-start; background:#334155; color:#e2e8f0;
-    border-bottom-left-radius:4px;
-  }
-  .msg .sender {
-    font-size:11px; font-weight:600; margin-bottom:2px;
-    opacity:.7;
-  }
+  .msg.system { align-self:center; max-width:100%; background:transparent; color:#94a3b8; font-size:12px; text-align:center; }
+  .msg.self { align-self:flex-end; background:#3b82f6; color:#fff; border-bottom-right-radius:4px; }
+  .msg.other { align-self:flex-start; background:#334155; color:#e2e8f0; border-bottom-left-radius:4px; }
+  .msg.dm { align-self:flex-start; background:#7c3aed; color:#f3e8ff; border-bottom-left-radius:4px; border-left:3px solid #a78bfa; }
+  .msg.dm-self { align-self:flex-end; background:#7c3aed; color:#f3e8ff; border-bottom-right-radius:4px; border-right:3px solid #a78bfa; }
+  .msg .sender { font-size:11px; font-weight:600; margin-bottom:2px; opacity:.7; }
 
   .input-panel {
-    display:flex; gap:8px; padding:12px 20px;
-    border-top:1px solid #334155; background:#0f172a;
+    display:flex; gap:8px; padding:10px 18px;
+    border-top:1px solid #334155; background:#0f172a; flex-shrink:0;
   }
   .input-panel input {
-    flex:1; padding:10px 14px; border-radius:10px;
-    border:1px solid #475569; background:#1e293b;
-    color:#e2e8f0; font-size:14px; outline:none;
+    flex:1; padding:9px 12px; border-radius:10px;
+    border:1px solid #475569; background:#1e293b; color:#e2e8f0; font-size:14px; outline:none;
   }
   .input-panel input:focus { border-color:#3b82f6; }
   .input-panel button {
-    padding:10px 18px; border-radius:10px; border:none;
-    background:#3b82f6; color:#fff; font-size:14px; font-weight:600;
-    cursor:pointer;
+    padding:9px 16px; border-radius:10px; border:none;
+    background:#3b82f6; color:#fff; font-size:13px; font-weight:600; cursor:pointer;
   }
   .input-panel button:disabled { opacity:.3; cursor:default; }
 
-  .info {
-    padding:8px 20px; font-size:11px; color:#64748b;
-    background:#0f172a; text-align:center;
+  .info { padding:6px 18px; font-size:11px; color:#64748b; background:#0f172a; text-align:center; flex-shrink:0; }
+
+  /* ── sidebar ──────────────────────────────────────────────────────── */
+  .sidebar {
+    width:170px; flex-shrink:0; background:#1e293b; border-radius:16px;
+    box-shadow:0 25px 50px rgba(0,0,0,.4);
+    display:flex; flex-direction:column; overflow:hidden;
   }
+  .sidebar h3 {
+    padding:14px 16px 8px; font-size:13px; font-weight:600; color:#94a3b8;
+    flex-shrink:0;
+  }
+  .sidebar ul {
+    flex:1; overflow-y:auto; list-style:none; padding:0 8px 8px;
+  }
+  .sidebar ul li {
+    padding:6px 10px; border-radius:8px; font-size:13px; cursor:pointer;
+    color:#cbd5e1; transition:background .15s;
+    display:flex; align-items:center; gap:6px;
+  }
+  .sidebar ul li:hover { background:#334155; }
+  .sidebar ul li.me { color:#3b82f6; font-weight:600; cursor:default; }
+  .sidebar ul li.selected { background:#3b82f6; color:#fff; }
+  .sidebar ul li .dot { width:6px; height:6px; border-radius:50%; background:#22c55e; flex-shrink:0; }
+  .sidebar .count { padding:4px 16px 10px; font-size:11px; color:#64748b; flex-shrink:0; }
 </style>
 </head>
 <body>
-<div class="container">
-  <div class="header">
-    <div class="status" id="status"></div>
-    <h1>Gateway Chat</h1>
+<div class="layout">
+  <div class="main">
+    <div class="header">
+      <div class="status" id="status"></div>
+      <h1>Gateway Chat</h1>
+      <div class="dm-target" id="dmTarget" style="display:none">
+        DM to <strong id="dmName"></strong>
+        <button onclick="clearDmTarget()">✕</button>
+      </div>
+    </div>
+
+    <div class="connect-panel">
+      <input id="roomInput" placeholder="Room (e.g. lobby)" maxlength="6" value="lobby">
+      <input id="userInput" placeholder="Name" maxlength="8" value="user1">
+      <button id="connectBtn" onclick="toggleConnection()">Connect</button>
+    </div>
+
+    <div class="messages" id="messages">
+      <div class="msg system">Enter a room and name, then click Connect</div>
+    </div>
+
+    <div class="input-panel">
+      <input id="msgInput" placeholder="Type a message..." disabled onkeydown="if(event.key==='Enter')sendMessage()">
+      <button id="sendBtn" onclick="sendMessage()" disabled>Send</button>
+    </div>
+    <div class="info" id="info">Gateway binary protocol — 24-byte header + payload</div>
   </div>
 
-  <div class="connect-panel" id="connectPanel">
-    <input id="roomInput" placeholder="Room (e.g. lobby)" maxlength="6" value="lobby">
-    <input id="userInput" placeholder="Name" maxlength="8" value="user1">
-    <button id="connectBtn" onclick="toggleConnection()">Connect</button>
+  <div class="sidebar">
+    <h3>👥 Room Users</h3>
+    <ul id="userList"></ul>
+    <div class="count" id="userCount">0 online</div>
   </div>
-
-  <div class="messages" id="messages">
-    <div class="msg system">Enter a room and name, then click Connect</div>
-  </div>
-
-  <div class="input-panel">
-    <input id="msgInput" placeholder="Type a message..." disabled onkeydown="if(event.key==='Enter')sendMessage()">
-    <button id="sendBtn" onclick="sendMessage()" disabled>Send</button>
-  </div>
-  <div class="info" id="info">Gateway binary protocol — 24-byte header + payload</div>
 </div>
 
 <script src="gateway_protocol.js"></script>
@@ -130,6 +152,8 @@ let connected = false;
 let myRoom = '';
 let myUser = '';
 let seq = 0;
+let dmTarget = null;
+const onlineUsers = new Set();
 const PACKETS = { total:0, bytes:0 };
 
 // ── DOM refs ─────────────────────────────────────────────────────────────────
@@ -141,6 +165,90 @@ const $status     = document.getElementById('status');
 const $info       = document.getElementById('info');
 const $roomInput  = document.getElementById('roomInput');
 const $userInput  = document.getElementById('userInput');
+const $userList   = document.getElementById('userList');
+const $userCount  = document.getElementById('userCount');
+const $dmDiv      = document.getElementById('dmTarget');
+const $dmName     = document.getElementById('dmName');
+
+// ── Users ─────────────────────────────────────────────────────────────────────
+function addUser(name) {
+  if (name === myUser) return;
+  if (onlineUsers.has(name)) return;
+  onlineUsers.add(name);
+  renderUsers();
+}
+
+function renderUsers() {
+  $userList.innerHTML = '';
+  const sorted = [...onlineUsers].sort();
+  for (const name of sorted) {
+    const li = document.createElement('li');
+    li.innerHTML = `<span class="dot"></span>${name}`;
+    li.onclick = () => selectDmTarget(name);
+    if (name === dmTarget) li.classList.add('selected');
+    $userList.appendChild(li);
+  }
+  // "Everyone" option
+  const allLi = document.createElement('li');
+  allLi.textContent = '📢 Everyone';
+  allLi.onclick = () => clearDmTarget();
+  if (!dmTarget) allLi.classList.add('selected');
+  $userList.appendChild(allLi);
+
+  $userCount.textContent = onlineUsers.size + ' online';
+}
+
+function selectDmTarget(name) {
+  dmTarget = name;
+  $dmName.textContent = name;
+  $dmDiv.style.display = 'flex';
+  renderUsers();
+}
+
+function clearDmTarget() {
+  dmTarget = null;
+  $dmDiv.style.display = 'none';
+  renderUsers();
+}
+
+// ── Send helpers ─────────────────────────────────────────────────────────────
+function sendRaw(pktType, tgtType, targetUser, payloadBytes) {
+  const wire = gatewayProtocol.encode({
+    version: 0x02,
+    pktType: pktType,
+    tgtType: tgtType,
+    roomId: myRoom,
+    userId: targetUser,
+    seq: seq++,
+    payload: payloadBytes,
+  });
+  const buf = wire.buffer.slice(wire.byteOffset, wire.byteOffset + wire.byteLength);
+  ws.send(buf);
+}
+
+function sendAnnounceJoin() {
+  const payload = new TextEncoder().encode(JSON.stringify({ type: 'join', user: myUser }));
+  sendRaw(gatewayProtocol.PKT_SYSTEM_CMD, gatewayProtocol.TGT_BROADCAST, myUser, payload);
+}
+
+// ── Send message ──────────────────────────────────────────────────────────────
+function sendMessage() {
+  const text = $msgInput.value.trim();
+  if (!text || !ws) return;
+
+  if (dmTarget) {
+    // Private message: UNICAST to dmTarget, payload contains sender info
+    const payload = new TextEncoder().encode(JSON.stringify({ from: myUser, text: text }));
+    sendRaw(gatewayProtocol.PKT_AI_EVENT, gatewayProtocol.TGT_UNICAST, dmTarget, payload);
+    addMsg('dm-self', '(to ' + dmTarget + ') ' + text);
+  } else {
+    // Group message: BROADCAST to room
+    sendRaw(gatewayProtocol.PKT_AI_EVENT, gatewayProtocol.TGT_BROADCAST, myUser, new TextEncoder().encode(text));
+    addMsg('self', text);
+  }
+  $msgInput.value = '';
+  $msgInput.focus();
+}
 
 // ── Connect / Disconnect ─────────────────────────────────────────────────────
 function toggleConnection() {
@@ -152,7 +260,7 @@ function connect() {
   const user = $userInput.value.trim();
   if (!room || !user) return addMsg('system', 'Room and name required');
 
-  myRoom = room; myUser = user; seq = 0;
+  myRoom = room; myUser = user; seq = 0; onlineUsers.clear(); dmTarget = null;
   const url = `ws://${location.hostname}:8080/ws?room=${encodeURIComponent(room)}&user=${encodeURIComponent(user)}`;
 
   try {
@@ -164,7 +272,6 @@ function connect() {
   }
 
   ws.onopen = () => {
-    console.log('[chat] WS connected, binaryType=', ws.binaryType, 'protocol=', ws.protocol);
     connected = true;
     $status.classList.add('connected');
     $connectBtn.textContent = 'Disconnect';
@@ -173,6 +280,8 @@ function connect() {
     $msgInput.disabled = $sendBtn.disabled = false;
     $msgInput.focus();
     addMsg('system', `Joined room "${room}" as "${user}"`);
+    sendAnnounceJoin();
+    renderUsers();
     updateInfo();
   };
 
@@ -183,12 +292,37 @@ function connect() {
 
     try {
       const pkt = gatewayProtocol.decode(raw);
+
+      if (pkt.pktType === gatewayProtocol.PKT_SYSTEM_CMD) {
+        // System commands: join/leave notifications
+        try {
+          const cmd = JSON.parse(new TextDecoder().decode(pkt.payload));
+          if (cmd.type === 'join' && cmd.user) {
+            addUser(cmd.user);
+            addMsg('system', cmd.user + ' joined');
+          }
+        } catch(e) { /* ignore malformed system payload */ }
+        return;
+      }
+
+      if (pkt.tgtType === gatewayProtocol.TGT_UNICAST) {
+        // Private message — payload is JSON {from, text}
+        try {
+          const dm = JSON.parse(new TextDecoder().decode(pkt.payload));
+          const cls = (dm.from === myUser) ? 'dm-self' : 'dm';
+          addMsg(cls, '(DM) ' + dm.text, dm.from !== myUser ? dm.from : null);
+        } catch(e) {
+          addMsg('system', 'Bad DM payload');
+        }
+        return;
+      }
+
+      // Broadcast message
       if (pkt.pktType === gatewayProtocol.PKT_AI_EVENT) {
         const text = new TextDecoder().decode(pkt.payload);
         const cls = (pkt.userId === myUser) ? 'self' : 'other';
+        if (pkt.userId !== myUser) addUser(pkt.userId);
         addMsg(cls, text, pkt.userId !== myUser ? pkt.userId : null);
-      } else if (pkt.pktType === gatewayProtocol.PKT_SYSTEM_CMD) {
-        addMsg('system', new TextDecoder().decode(pkt.payload));
       }
     } catch(e) {
       addMsg('system', 'Decode error: ' + e.message);
@@ -213,38 +347,16 @@ function disconnect() {
 
 function resetUI() {
   connected = false;
+  onlineUsers.clear();
+  dmTarget = null;
   $status.classList.remove('connected');
   $connectBtn.textContent = 'Connect';
   $connectBtn.classList.remove('disconnect');
   $roomInput.disabled = $userInput.disabled = false;
   $msgInput.disabled = $sendBtn.disabled = true;
+  $dmDiv.style.display = 'none';
+  renderUsers();
   ws = null;
-}
-
-// ── Send ─────────────────────────────────────────────────────────────────────
-function sendMessage() {
-  const text = $msgInput.value.trim();
-  if (!text || !ws) return;
-
-  const payload = new TextEncoder().encode(text);
-  const wire = gatewayProtocol.encode({
-    version: 0x02,
-    pktType: gatewayProtocol.PKT_AI_EVENT,
-    tgtType: gatewayProtocol.TGT_BROADCAST,
-    roomId: myRoom,
-    userId: myUser,
-    seq: seq++,
-    payload: payload,
-  });
-
-  // Send as ArrayBuffer to avoid Uint8Array byteOffset issues on some browsers.
-  // wire.buffer may be larger than wire if the TypedArray has an offset.
-  const buf = wire.buffer.slice(wire.byteOffset, wire.byteOffset + wire.byteLength);
-  console.log('[chat] sending', wire.byteLength, 'bytes, version byte=', wire[0].toString(16));
-  ws.send(buf);
-  addMsg('self', text);
-  $msgInput.value = '';
-  $msgInput.focus();
 }
 
 // ── Display ──────────────────────────────────────────────────────────────────
